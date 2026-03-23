@@ -1,0 +1,315 @@
+---
+title: "Module 4 Lab Assignment"
+author: "Rezoan Ishteaque Hossain"
+date: "2026-03-22"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+options(scipen = 999)
+
+knitr::opts_chunk$set(
+  echo = FALSE,
+  message = FALSE,
+  warning = FALSE,
+  include = FALSE
+)
+```
+
+# Case Problem 1: Hamilton County Judges
+
+## Introduction
+
+This report reviews the performance of judges in Hamilton County Courts by using probability and conditional probability. The data include cases disposed, appealed, and reversed for judges in Common Pleas Court, Domestic Relations Court, and Municipal Court. The goal is to compare the likelihood of appeal and reversal and then rank the judges within each court.
+
+## Analysis
+
+I first combined the data for the three courts and then calculated the probability of appeal, the probability of reversal, and the probability of reversal given that a case was appealed. These measures help show how often cases are challenged and how often those challenges lead to a reversal.
+
+At the court level, Common Pleas Court had the highest probability of appeal at about 0.0401. Municipal Court was next at about 0.0046, and Domestic Relations Court was lowest at about 0.0035. For probability of reversal given appeal, Municipal Court was highest at about 0.2080, Domestic Relations Court was about 0.1604, and Common Pleas Court was lowest at about 0.1129.
+
+To rank the judges, I compared judges within the same court and sorted them by reversal given appeal and then by appeal probability. In Common Pleas Court, the top two judges were Thomas Nurre and Robert Kraft. The bottom two judges were William Morrissey and William Mathews. In Domestic Relations Court, the top two judges were Ronald Panioto and Penelope Cunningham, while the bottom two were Deborah Gaines and Patrick Dinkelacker. In Municipal Court, the top two judges were Karla Grady and Deidra Hair, while the bottom two were Mark Painter and John A. West.
+
+These results give a simple way to compare performance, but they should still be interpreted carefully. Some judges had fewer appealed cases than others, so a small number of reversals can have a big effect on the conditional probability. Even so, the probability measures are useful for identifying overall patterns and possible differences in performance across courts and judges.
+
+```{r}
+# make the Hamilton County Judges data
+# first i am entering Common Pleas Court data
+
+common_pleas <- tibble(
+  court = "Common Pleas Court",
+  judge = c(
+    "Fred Cartolano",
+    "Thomas Crush",
+    "Patrick Dinkelacker",
+    "Timothy Hogan",
+    "Robert Kraft",
+    "William Mathews",
+    "William Morrissey",
+    "Norbert Nadel",
+    "Arthur Ney, Jr.",
+    "Richard Niehaus",
+    "Thomas Nurre",
+    "John O'Connor",
+    "Robert Ruehlman",
+    "J. Howard Sundermann",
+    "Ann Marie Tracey",
+    "Ralph Winkler"
+  ),
+  disposed = c(
+    3037, 3372, 1258, 1954, 3138, 2264, 3032, 2959,
+    3219, 3353, 3000, 2969, 3205, 955, 3141, 3089
+  ),
+  appealed = c(
+    137, 119, 44, 60, 127, 91, 121, 131,
+    125, 137, 121, 129, 145, 60, 127, 88
+  ),
+  reversed = c(
+    12, 10, 8, 7, 7, 18, 22, 20,
+    14, 16, 6, 12, 18, 10, 13, 6
+  )
+)
+
+# look at the data
+common_pleas
+```
+
+
+```{r}
+# now i am entering Domestic Relations Court data
+
+domestic_relations <- tibble(
+  court = "Domestic Relations Court",
+  judge = c(
+    "Penelope Cunningham",
+    "Patrick Dinkelacker",
+    "Deborah Gaines",
+    "Ronald Panioto"
+  ),
+  disposed = c(2729, 6001, 8799, 12970),
+  appealed = c(7, 19, 48, 32),
+  reversed = c(1, 4, 9, 3)
+)
+
+# look at the data
+domestic_relations
+```
+
+```{r}
+# now i am entering Municipal Court data
+
+municipal <- tibble(
+  court = "Municipal Court",
+  judge = c(
+    "Mike Allen",
+    "Nadine Allen",
+    "Timothy Black",
+    "David Davis",
+    "Leslie Isaiah Gaines",
+    "Karla Grady",
+    "Deidra Hair",
+    "Dennis Helmick",
+    "Timothy Hogan",
+    "James Patrick Kenney",
+    "Joseph Luebbers",
+    "William Mallory",
+    "Melba Marsh",
+    "Beth Mattingly",
+    "Albert Mestemaker",
+    "Mark Painter",
+    "Jack Rosen",
+    "Mark Schweikert",
+    "David Stockdale",
+    "John A. West"
+  ),
+  disposed = c(
+    6149, 7812, 7954, 7736, 5282, 5253, 2532, 7900, 2308, 2798,
+    4698, 8277, 8219, 2971, 4975, 2239, 7790, 5403, 5371, 2797
+  ),
+  appealed = c(
+    43, 34, 41, 43, 35, 6, 5, 29, 13, 6,
+    25, 38, 34, 13, 28, 7, 41, 33, 22, 4
+  ),
+  reversed = c(
+    4, 6, 6, 5, 13, 0, 0, 5, 2, 1,
+    8, 9, 7, 1, 9, 3, 13, 6, 4, 2
+  )
+)
+
+# look at the data
+municipal
+```
+
+```{r}
+# now i am combining all 3 courts into one table
+
+hamilton_judges <- bind_rows(
+  common_pleas,
+  domestic_relations,
+  municipal
+)
+
+# look at the full Hamilton County Judges data
+hamilton_judges
+```
+
+```{r}
+# now i am adding probability columns for each judge
+
+hamilton_judges_prob <- hamilton_judges %>%
+  mutate(
+    appeal_prob = appealed / disposed,
+    reversal_prob = reversed / disposed
+  )
+
+# look at the updated table
+hamilton_judges_prob
+```
+
+
+```{r}
+# now i am adding probability of reversal given appeal
+
+hamilton_judges_final <- hamilton_judges_prob %>%
+  mutate(
+    rev_given_appeal = reversed / appealed
+  )
+
+# look at the final Hamilton judges table
+hamilton_judges_final
+```
+
+```{r}
+# now i am making a summary table for the 3 courts
+
+court_summary <- hamilton_judges_final %>%
+  group_by(court) %>%
+  summarise(
+    total_disposed = sum(disposed),
+    total_appealed = sum(appealed),
+    total_reversed = sum(reversed),
+    appeal_prob = total_appealed / total_disposed,
+    reversal_prob = total_reversed / total_disposed,
+    rev_given_appeal = total_reversed / total_appealed
+  )
+
+# look at the court summary table
+court_summary
+```
+
+```{r}
+# now i am ranking judges inside each court
+# lower probabilities are better here
+
+judge_rankings <- hamilton_judges_final %>%
+  mutate(
+    appeal_prob = round(appeal_prob, 4),
+    reversal_prob = round(reversal_prob, 4),
+    rev_given_appeal = round(rev_given_appeal, 4)
+  ) %>%
+  arrange(court, rev_given_appeal, appeal_prob)
+
+# look at the judge ranking table
+judge_rankings
+```
+
+```{r}
+# now i am adding rank numbers inside each court
+
+judge_rankings_numbered <- hamilton_judges_final %>%
+  mutate(
+    appeal_prob = round(appeal_prob, 4),
+    reversal_prob = round(reversal_prob, 4),
+    rev_given_appeal = round(rev_given_appeal, 4)
+  ) %>%
+  group_by(court) %>%
+  arrange(rev_given_appeal, appeal_prob, .by_group = TRUE) %>%
+  mutate(rank_in_court = row_number()) %>%
+  ungroup()
+
+# look at the ranking table with rank numbers
+judge_rankings_numbered
+```
+
+```{r}
+# now i am pulling the best 2 judges from each court
+
+best_2_each_court <- judge_rankings_numbered %>%
+  group_by(court) %>%
+  slice_head(n = 2) %>%
+  ungroup()
+
+# look at the best 2 judges from each court
+best_2_each_court
+
+
+# now i am pulling the worst 2 judges from each court
+
+worst_2_each_court <- judge_rankings_numbered %>%
+  group_by(court) %>%
+  slice_tail(n = 2) %>%
+  ungroup()
+
+# look at the worst 2 judges from each court
+worst_2_each_court
+```
+
+## Conclusion
+
+In conclusion, probability analysis provides a useful way to evaluate Hamilton County judges. Common Pleas Court had the highest probability of appeal, while Municipal Court had the highest probability of reversal given appeal. Based on the ranking results, some judges performed better than others within their courts. Overall, this analysis helps identify which judges appear to have stronger outcomes and which judges may need closer review.
+
+
+# Case Problem 3: Gebhardt Electronics
+
+## Introduction
+
+This report reviews the Gebhardt Electronics case by using the exponential probability distribution. The company wants to evaluate the quality of wire insulation by looking at the average length between flaws. The analysis focuses on the probability that a 100 centimeter segment is flawless and the minimum average length required to meet specific quality targets.
+
+## Analysis
+
+For the new supplier, the mean length between flaws is 127 centimeters. Using the exponential distribution, the probability that a 100 centimeter segment is flawless is about 0.4550, or 45.50%. This means the claim gives a fairly high chance that a 100 centimeter segment will have no flaws.
+
+Next, I calculated the minimum mean length between flaws needed to satisfy two quality goals. For a 1 in 20 chance, or 0.05 probability, the minimum mean length is about 33.38 centimeters. For a 1 in 100 chance, or 0.01 probability, the minimum mean length is about 21.71 centimeters.
+
+Based on these results, the new supplier’s claim of 127 centimeters is much higher than both minimum requirements. This suggests that the supplier’s wire quality is strong and would easily satisfy both of the stated probability targets. The probability of a flawless 100 centimeter segment is also much greater than 0.05 and 0.01.
+
+```{r}
+# now i am solving the Gebhardt Electronics case
+# i am following the problem exactly as written in the book
+
+# mean length between flaws in centimeters
+mean_between_flaws <- 127
+
+# if length between flaws follows an exponential distribution,
+# the probability that a random 100 cm segment is flawless is:
+prob_flawless_100cm <- pexp(100, rate = 1 / mean_between_flaws, lower.tail = FALSE)
+
+# minimum mean length between flaws for a 1 in 20 chance of a flawless 100 cm segment
+min_mean_for_1_in_20 <- -100 / log(0.05)
+
+# minimum mean length between flaws for a 1 in 100 chance of a flawless 100 cm segment
+min_mean_for_1_in_100 <- -100 / log(0.01)
+
+# put results in a small table
+gebhardt_results <- tibble(
+  question = c(
+    "Probability a 100 cm segment is flawless when mean = 127 cm",
+    "Minimum mean length for 1 in 20 flawless probability",
+    "Minimum mean length for 1 in 100 flawless probability"
+  ),
+  result = c(
+    prob_flawless_100cm,
+    min_mean_for_1_in_20,
+    min_mean_for_1_in_100
+  )
+)
+
+# look at the results
+gebhardt_results
+```
+
+
+## Conclusion
+
+In conclusion, the exponential distribution shows that the new supplier’s insulation quality appears to be very good. With a mean length of 127 centimeters between flaws, the probability that a 100 centimeter segment is flawless is about 45.50%. Also, the required minimum mean lengths for the two quality targets are only 33.38 centimeters and 21.71 centimeters. Overall, the supplier’s claim exceeds the required standards by a wide margin.
